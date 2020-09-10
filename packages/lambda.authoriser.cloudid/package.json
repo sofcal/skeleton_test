@@ -1,5 +1,5 @@
 {
-  "name": "@sage/bnkc-skeleton-api-cloudid",
+  "name": "@sage/bnkc-fnb-api-cloudid",
   "version": "0.0.14",
   "description": "Lambda function to for Authorisation and Claims",
   "private": true,

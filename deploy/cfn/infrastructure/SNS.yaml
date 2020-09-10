@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: infrastructure: sns (SNS Topics for alert notifications)'
+Description: 'bnkc-fnb: infrastructure: sns (SNS Topics for alert notifications)'
 
 Parameters:
   VariablesStackName:

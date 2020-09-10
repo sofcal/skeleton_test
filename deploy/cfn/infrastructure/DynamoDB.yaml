@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: 'bnkc-skeleton: infrastructure: dynamoDB (database stack, single table)'
+Description: 'bnkc-fnb: infrastructure: dynamoDB (database stack, single table)'
 
 Parameters:
   VariablesStackName:

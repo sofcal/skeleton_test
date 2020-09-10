@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: infrastructure: iam (policies defining access rights for infrastructure resources)'
+Description: 'bnkc-fnb: infrastructure: iam (policies defining access rights for infrastructure resources)'
 
 Parameters:
   VariablesStackName:

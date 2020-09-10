@@ -1,5 +1,5 @@
 {
-  "name": "@sage/bnkc-skeleton-util-build-batch-step",
+  "name": "@sage/bnkc-fnb-util-build-batch-step",
   "version": "0.0.14",
   "description": "Lambda function to update the status of a batch process",
   "private": true,

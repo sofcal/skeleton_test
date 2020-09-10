@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: components (parent stack for component level resources e.g. API, Step)'
+Description: 'bnkc-fnb: components (parent stack for component level resources e.g. API, Step)'
 
 Parameters:
   VariablesStackName:

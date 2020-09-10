@@ -1,5 +1,5 @@
 'use strict';
 
-describe('@sage/bnkc-skeleton-batch-status.index', async function () {
+describe('@sage/bnkc-fnb-batch-status.index', async function () {
 
 });

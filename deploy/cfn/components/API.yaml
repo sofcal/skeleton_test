@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: components: API'
+Description: 'bnkc-fnb: components: API'
 
 Parameters:
   VariablesStackName:

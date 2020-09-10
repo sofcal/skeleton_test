@@ -11,10 +11,10 @@ const options = {
             description: '<TBC>'
         },
         servers: [{
-            url: 'https://bnkc-skeleton.fabric.sage.com/provider/v1',
+            url: 'https://bnkc-fnb.fabric.sage.com/provider/v1',
             description: 'Production environment. Live hamsters powering the machines, live data in the databases.'
         }, {
-            url: 'https://bnkc-skeleton.dev-fabric.sage.com/provider/v1',
+            url: 'https://bnkc-fnb.dev-fabric.sage.com/provider/v1',
             description: 'Development environment containing the latest and likely break-est changes. This environment ' +
             'should only be used for previewing functionality and should never be considered stable.'
         }]

@@ -1,5 +1,5 @@
 {
-  "name": "@sage/bnkc-skeleton-util-build-swagger",
+  "name": "@sage/bnkc-fnb-util-build-swagger",
   "version": "0.0.14",
   "description": "Generator project for Swagger",
   "private": true,

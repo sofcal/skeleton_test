@@ -1,8 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: root'
+Description: 'bnkc-fnb: root'
 Parameters:
   Product:
-    Description: Concatenation of the Service name and the Connector Name. e.g. bnkc-skeleton
+    Description: Concatenation of the Service name and the Connector Name. e.g. bnkc-fnb
     Type: String
   Environment:
     Description: Name of the environment. This will be used in all resource prefixes to differentiate between environments

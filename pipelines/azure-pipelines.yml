@@ -21,7 +21,7 @@ resources:
     ref: refs/heads/production
 
 variables:
-  PRODUCT: bnkc-skeleton
+  PRODUCT: bnkc-fnb
   BUILD_ARTIFACT_NAME: 'build_output'
   BUILD_NODE_ARTIFACT_NAME: 'node_output'
   BUILD_OUTPUT_PATH: build/

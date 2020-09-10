@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: lambda: generic'
+Description: 'bnkc-fnb: lambda: generic'
 Metadata: {}
 Parameters:
   VariablesStackName:

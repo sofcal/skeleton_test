@@ -2,7 +2,7 @@
 
 const Lambda = require('../../lib/Lambda');
 
-const { generators, stubs } = require('@sage/bnkc-skeleton-util-testing-stubs');
+const { generators, stubs } = require('@sage/bnkc-fnb-util-testing-stubs');
 const { TestRunner } = require('@sage/bc-debug-testrunner');
 const { TestConnectorsDB } = require('@sage/bc-servicelayer-db-plugins-connectorsdb');
 
@@ -10,7 +10,7 @@ const should = require('should');
 
 TestRunner.product = require('../../../../package').short;
 
-describe('@sage/bnkc-skeleton-api-temp-post', async function() {
+describe('@sage/bnkc-fnb-api-temp-post', async function() {
     let testRunner;
     let collections;
 

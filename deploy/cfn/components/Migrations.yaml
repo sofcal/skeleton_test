@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: components: step'
+Description: 'bnkc-fnb: components: step'
 
 Parameters:
   VariablesStackName:

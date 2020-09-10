@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: infrastructure (parent stack for infrastructure level resources, e.g. IAM, DB, KMS)'
+Description: 'bnkc-fnb: infrastructure (parent stack for infrastructure level resources, e.g. IAM, DB, KMS)'
 
 Parameters:
   VariablesStackName:

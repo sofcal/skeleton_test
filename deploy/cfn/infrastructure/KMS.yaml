@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'bnkc-skeleton: infrastructure: kms (KMS keys)'
+Description: 'bnkc-fnb: infrastructure: kms (KMS keys)'
 
 Parameters:
   VariablesStackName:

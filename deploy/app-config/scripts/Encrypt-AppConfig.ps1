@@ -77,7 +77,7 @@ if (![System.IO.Path]::IsPathRooted($filePath)) {
 
 Write-Host "$filePath"
 
-$keyId = "alias/bnkc-skeleton-$env-$region-config"
+$keyId = "alias/bnkc-fnb-$env-$region-config"
 
 $out = Invoke-KMSEncryptFile -filePath $filePath -keyId $keyId -region $region -profileName $profileName
 
