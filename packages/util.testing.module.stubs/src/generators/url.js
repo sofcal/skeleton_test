@@ -12,5 +12,5 @@ module.exports = (environment, region) => {
         return region === 'eu-west-1' ? 'https://' : 'https://';
     }
 
-    return `https://bnkc-skeleton-${environment}-${region}.sagebanking${postfix}.cloud`;
+    return `https://bnkc-fnb-${environment}-${region}.sagebanking${postfix}.cloud`;
 };

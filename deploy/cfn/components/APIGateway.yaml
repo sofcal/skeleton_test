@@ -245,101 +245,101 @@ Resources:
       - AuthoriserCloudId
 
 
-  #################################################################
-  # Custom Domain and Base mapping for referencing in CloudFlare
-  #################################################################
-  ApiCustomDomainRoute53Env01:
-    Type: 'AWS::ApiGateway::DomainName'
-    Condition: Is01
-    Properties:
-      CertificateArn: !Ref DomainCertificateArn
-      DomainName: !Sub
-        - '${Product}.${DomainName}'
-        - Product: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-Product'
-      EndpointConfiguration:
-        Types:
-          - EDGE
-      SecurityPolicy: TLS_1_2
-      Tags:
-        - Key: Environment
-          Value: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-Environment'
-        - Key: Component
-          Value: !Ref Component
-        - Key: Product
-          Value: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-Product'
-
-  ApiMappingRoute53Env01:
-    Type: 'AWS::ApiGateway::BasePathMapping'
-    Condition: Is01
-    Properties:
-      DomainName: !Ref ApiCustomDomainRoute53Env01
-      RestApiId: !Ref APIGateway
-      Stage: !Ref StageName
-    DependsOn:
-      - APIGateway
-      - ApiCustomDomainRoute53Env01
-
-
-
-  #################################################################
-  # Custom Domain and Base mapping for Dev
-  #################################################################
-
-  ApiCustomDomainRoute53Dev:
-    Type: 'AWS::ApiGateway::DomainName'
-    Condition: IsDev
-    Properties:
-      CertificateArn: !Sub >-
-        arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/69d5982f-5e4d-49a9-ae95-82aff61b8459
-      DomainName: !Sub
-        - '${ResourcePrefix}.connectors.sagebanking-dev.cloud'
-        - ResourcePrefix: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
-      EndpointConfiguration:
-        Types:
-          - EDGE
-      SecurityPolicy: TLS_1_2
-      Tags:
-        - Key: Environment
-          Value: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-Environment'
-        - Key: Component
-          Value: !Ref Component
-        - Key: Product
-          Value: !ImportValue
-            'Fn::Sub': '${VariablesStackName}-Product'
-
-  ApiMappingRoute53Dev:
-    Type: 'AWS::ApiGateway::BasePathMapping'
-    Condition: IsDev
-    Properties:
-      DomainName: !Ref ApiCustomDomainRoute53Dev
-      RestApiId: !Ref APIGateway
-      Stage: !Ref StageName
-    DependsOn:
-      - APIGateway
-      - ApiCustomDomainRoute53Dev
-
-  Route53RecordDev:
-    Type: 'AWS::Route53::RecordSetGroup'
-    Condition: IsDev
-    Properties:
-      HostedZoneName: connectors.sagebanking-dev.cloud.
-      RecordSets:
-        - Name: !Ref ApiCustomDomainRoute53Dev
-          Type: A
-          AliasTarget:
-            HostedZoneId: Z2FDTNDATAQYW2
-            DNSName: !GetAtt
-              - ApiCustomDomainRoute53Dev
-              - DistributionDomainName
-    DependsOn:
-      - APIGateway
-      - ApiCustomDomainRoute53Dev
-      - ApiMappingRoute53Dev
+#  #################################################################
+#  # Custom Domain and Base mapping for referencing in CloudFlare
+#  #################################################################
+#  ApiCustomDomainRoute53Env01:
+#    Type: 'AWS::ApiGateway::DomainName'
+#    Condition: Is01
+#    Properties:
+#      CertificateArn: !Ref DomainCertificateArn
+#      DomainName: !Sub
+#        - '${Product}.${DomainName}'
+#        - Product: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-Product'
+#      EndpointConfiguration:
+#        Types:
+#          - EDGE
+#      SecurityPolicy: TLS_1_2
+#      Tags:
+#        - Key: Environment
+#          Value: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-Environment'
+#        - Key: Component
+#          Value: !Ref Component
+#        - Key: Product
+#          Value: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-Product'
+#
+#  ApiMappingRoute53Env01:
+#    Type: 'AWS::ApiGateway::BasePathMapping'
+#    Condition: Is01
+#    Properties:
+#      DomainName: !Ref ApiCustomDomainRoute53Env01
+#      RestApiId: !Ref APIGateway
+#      Stage: !Ref StageName
+#    DependsOn:
+#      - APIGateway
+#      - ApiCustomDomainRoute53Env01
+#
+#
+#
+#  #################################################################
+#  # Custom Domain and Base mapping for Dev
+#  #################################################################
+#
+#  ApiCustomDomainRoute53Dev:
+#    Type: 'AWS::ApiGateway::DomainName'
+#    Condition: IsDev
+#    Properties:
+#      CertificateArn: !Sub >-
+#        arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/69d5982f-5e4d-49a9-ae95-82aff61b8459
+#      DomainName: !Sub
+#        - '${ResourcePrefix}.connectors.sagebanking-dev.cloud'
+#        - ResourcePrefix: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+#      EndpointConfiguration:
+#        Types:
+#          - EDGE
+#      SecurityPolicy: TLS_1_2
+#      Tags:
+#        - Key: Environment
+#          Value: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-Environment'
+#        - Key: Component
+#          Value: !Ref Component
+#        - Key: Product
+#          Value: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-Product'
+#
+#  ApiMappingRoute53Dev:
+#    Type: 'AWS::ApiGateway::BasePathMapping'
+#    Condition: IsDev
+#    Properties:
+#      DomainName: !Ref ApiCustomDomainRoute53Dev
+#      RestApiId: !Ref APIGateway
+#      Stage: !Ref StageName
+#    DependsOn:
+#      - APIGateway
+#      - ApiCustomDomainRoute53Dev
+#
+#  Route53RecordDev:
+#    Type: 'AWS::Route53::RecordSetGroup'
+#    Condition: IsDev
+#    Properties:
+#      HostedZoneName: connectors.sagebanking-dev.cloud.
+#      RecordSets:
+#        - Name: !Ref ApiCustomDomainRoute53Dev
+#          Type: A
+#          AliasTarget:
+#            HostedZoneId: Z2FDTNDATAQYW2
+#            DNSName: !GetAtt
+#              - ApiCustomDomainRoute53Dev
+#              - DistributionDomainName
+#    DependsOn:
+#      - APIGateway
+#      - ApiCustomDomainRoute53Dev
+#      - ApiMappingRoute53Dev
 
   APIParamStoreValue:
     Type: 'AWS::SSM::Parameter'
