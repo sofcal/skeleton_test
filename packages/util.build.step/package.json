@@ -1,6 +1,6 @@
 {
   "name": "@sage/bnkc-fnb-util-build-batch-step",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Lambda function to update the status of a batch process",
   "private": true,
   "main": "lib/index.js",

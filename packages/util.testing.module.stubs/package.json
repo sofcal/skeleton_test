@@ -1,6 +1,6 @@
 {
   "name": "@sage/bnkc-fnb-util-testing-stubs",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "author": "Sage UK",
   "license": "ISC",
   "description": "Stub functions for use with the bc TestRunner and StepRunner",
@@ -13,8 +13,8 @@
     "@babel/code-frame": "7.0.0",
     "@babel/core": "7.5.4",
     "@babel/preset-env": "7.5.4",
-    "@sage/bc-util-fuzzyaccess": "1.1.213",
     "@sage/bc-debug-testrunner": "1.1.213",
+    "@sage/bc-util-fuzzyaccess": "1.1.213",
     "bluebird": "3.5.1",
     "needle": "2.4.0",
     "nock": "11.4.0",

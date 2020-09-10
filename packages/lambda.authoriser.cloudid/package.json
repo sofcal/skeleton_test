@@ -1,6 +1,6 @@
 {
   "name": "@sage/bnkc-fnb-api-cloudid",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Lambda function to for Authorisation and Claims",
   "private": true,
   "main": "lib/index.js",

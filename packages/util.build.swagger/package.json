@@ -1,6 +1,6 @@
 {
   "name": "@sage/bnkc-fnb-util-build-swagger",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Generator project for Swagger",
   "private": true,
   "main": "lib/index.js",

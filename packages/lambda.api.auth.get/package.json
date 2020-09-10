@@ -1,6 +1,6 @@
 {
   "name": "@sage/bnkc-fnb-api-auth-post",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "",
   "private": true,
   "main": "lib/index.js",
@@ -25,10 +25,10 @@
   "dependencies": {
     "@sage/bc-contracts-api-hateoas": "1.1.213",
     "@sage/bc-module-lambda-api-base": "1.1.213",
+    "@sage/bc-requestlogger": "1.1.213",
     "@sage/bc-servicelayer-db-dynamolikebase": "1.1.213",
     "@sage/bc-servicelayer-db-plugins-connectorsdb": "1.1.213",
-    "@sage/bc-requestlogger": "1.1.213",
-    "@sage/bnkc-fnb-util-testing-stubs": "0.0.14",
+    "@sage/bnkc-fnb-util-testing-stubs": "^0.0.15",
     "aws-sdk": "2.220.1",
     "bluebird": "3.5.1",
     "safe-access": "0.1.0",
