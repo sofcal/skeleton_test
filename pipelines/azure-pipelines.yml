@@ -1,0 +1,333 @@
+pool:
+  vmImage: 'ubuntu-18.04'
+  #vmImage: 'windows-2019'
+
+#schedules:
+#- cron: "0 23 * * Thu"
+#  displayName: Security Scans
+#  branches:
+#    include:
+#    - develop
+#  always: true
+
+# additional repositories for pipeline templates
+resources:
+  repositories:
+  # holds shared pipeline templates for use across service fabric projects
+  - repository: lsm-servicefabric
+    type: github
+    endpoint: github.com_sfab-bankingcloud
+    name: Sage/lsm-servicefabric
+    ref: refs/heads/production
+
+variables:
+  PRODUCT: bnkc-skeleton
+  BUILD_ARTIFACT_NAME: 'build_output'
+  BUILD_NODE_ARTIFACT_NAME: 'node_output'
+  BUILD_OUTPUT_PATH: build/
+
+###############################################
+# Setup stuff
+# Build Output Name
+###############################################
+name: $(Date:yyyyMMdd)$(Rev:.rrr)
+
+###############################################
+# BUILD
+###############################################
+stages:
+  ###############################################
+  ## Stage 1 - Build & Test
+  ###############################################
+- stage: stage_build_test
+  displayName: 'stage: build_test'
+
+  jobs:
+  ###############################################
+  # Job: Builds and tests .net code base
+  ###############################################
+  - job: job_build_and_test
+    displayName: 'job: build_and_test'
+    steps:
+    # This task is implicit in build pipelines, but by making it explicit we can ensure we persist the git credentials for
+    #  the remainder of the job
+    - checkout: self
+      clean: true # in case this build machine is being reused
+      submodules: true
+      persistCredentials: true # store the credentials for the rest of this job
+
+    # extract build information from commit flags and versioning. Soon, a devops feature will allow this to work without exporting the environment.sh script
+    #  Coming Soon: https://github.com/microsoft/azure-pipelines-tasks/issues/4743
+    - task: Bash@3
+      name: SETVARS
+      displayName: 'prep: extract build meta (e.g. commit flags)'
+      # condition:
+        # NOTE: While this step has no conditions, the script it runs does. Extracting commit values for manual builds but setting
+        #        default values for anything else
+      inputs:
+        targetType: 'filePath'
+        filePath: './pipelines/scripts/extract_build_meta.sh'
+
+    # run prepenv to install the various tools we'll need to perform some of the other tasks
+    - task: Npm@1
+      displayName: 'prep: install tooling'
+      condition: and(succeeded(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        command: 'custom'
+        customCommand: run prepenv
+        customRegistry: 'useNpmrc'
+        customEndpoint: MyGet NPM
+
+
+     # Set environment variables for git and checkout the branch rather than a commit this allows us to commit any versioning changes we make
+    - task: Bash@3
+      displayName: 'versioning: set git environment'
+      # we don't perform versioning on pull requests or scheduled builds - it would create too much noise
+      condition: |
+        and
+        (
+          succeeded(),
+          ne(variables['Build.Reason'], 'Schedule'),
+          ne(variables['Build.Reason'], 'PullRequest'),
+          ne(variables['SETVARS.SKIP_BUILD'], 'true')
+        )
+      inputs:
+        targetType: 'filePath'
+        filePath: './pipelines/scripts/set_git_environment.sh'
+
+    # Versioning task
+    - task: Bash@3
+      name: VERSIONING
+      displayName: 'versioning: extract and set package version'
+      # condition:
+        # NOTE: While this step has no conditions, the script it runs does. PACKAGE_VERSION is NOT incremented for PullRequest or
+        #        Scheduled builds, or when SKIP_BUILD is set
+      inputs:
+        targetType: 'filePath'
+        filePath: './pipelines/scripts/set_package_version.sh'
+
+    # DEBUG shows the environment variables being set, making it easier to see what's configured. Secrets are automatically *** out by devops
+    - task: CmdLine@2
+      displayName: 'DEBUG: show environment variables'
+      inputs:
+        script: 'printenv'
+
+    # adds a tag to the deployment.
+    - task: YodLabs.VariableTasks.AddTag.AddTag@0
+      displayName: 'prep: tag build'
+      condition: |
+        and
+        (
+          succeeded(),
+          ne(variables['SETVARS.SKIP_BUILD'], 'true')
+        )
+      inputs:
+        tags: |
+          build
+          $(VERSIONING.PACKAGE_VERSION)
+
+    # Build
+    - task: Npm@1
+      displayName: 'build: nodejs'
+      condition: and(succeeded(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        command: 'custom'
+        customCommand: run build
+        customRegistry: 'useNpmrc'
+        customEndpoint: MyGet NPM
+
+    # Units
+    - task: Npm@1
+      displayName: 'test: units'
+      condition: and(succeeded(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        command: 'custom'
+        customCommand: run test/unit
+
+    # ESLint
+    - task: Npm@1
+      displayName: 'test: eslint'
+      condition: and(succeeded(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        command: 'custom'
+        customCommand: run lint
+
+    ## commit version change -- This must be moved after unit test task
+    - task: Bash@3
+      displayName: 'versioning: commit version change'
+      # we don't perform versioning on pull requests or scheduled builds
+      condition: |
+        and
+        (
+          succeeded(),
+          ne(variables['Build.Reason'], 'Schedule'),
+          ne(variables['Build.Reason'], 'PullRequest'),
+          ne(variables['SETVARS.SKIP_BUILD'], 'true')
+        )
+      inputs:
+        targetType: 'filePath'
+        filePath: './pipelines/scripts/commit_package_version.sh'
+
+    ## Package deploy content
+    - task: Bash@3
+      displayName: 'package: deploy content'
+      inputs:
+        targetType: 'inline'
+        script: 'mkdir -p ./build/deploy && cp -R ./deploy ./build'
+
+    # Publish test results for the build, these will show on the Test tab of the build
+    - task: PublishTestResults@2
+      displayName: 'publish: test results'
+      condition: and(succeededOrFailed(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: '**/junit_unit_results.xml'
+        failTaskOnFailedTests: true
+
+    # Publish coverage results for the build, these will show on the Coverage tab of the build
+    - task: PublishCodeCoverageResults@1
+      displayName: 'publish: code coverage results'
+      condition: and(succeeded(), ne(variables['SETVARS.SKIP_BUILD'], 'true'))
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/coverage'
+
+    ## Publish Artefacts to output folder
+    - task: PublishBuildArtifacts@1
+      displayName: 'publish: artefacts'
+      inputs:
+        artifactName: '$(BUILD_ARTIFACT_NAME)'
+        pathToPublish: '$(BUILD_OUTPUT_PATH)'
+
+
+  ###############################################
+  # Job: Run security scans
+  ###############################################
+#  - job: job_security_scans
+#    displayName: 'job: security_scans'
+#    dependsOn: 'job_build_test_dotnet'
+#    condition: |
+#      and
+#      (
+#        succeeded(),
+#        or
+#        (
+#          eq(dependencies.job_build_test_dotnet.outputs['SETVARS.SECURITY_SCANS'], 'true'),
+#          eq(variables['Build.Reason'], 'Schedule'),
+#          startswith(variables['Build.SourceBranch'], 'refs/heads/release')
+#        )
+#      )
+#    steps:
+#    # add security tag to the pipeline
+#    - task: YodLabs.VariableTasks.AddTag.AddTag@0
+#      displayName: 'prep: tag build'
+#      inputs:
+#        tags: |
+#          security_scans
+#    # Security Testing
+#    - template: ./templates/security-tests.yml
+
+#- stage: stgdepNETrue
+#  condition: and(succeeded(), ne(stageDependencies.stage_build_test.outputs['job_build_and_test.SETVARS.DEPLOY_ENV'], 'none'))
+#  dependsOn: stage_build_test
+#  jobs:
+#  - job: B1
+#    steps:
+#    - script: echo should run
+#
+## does NOT run
+#- stage: stgdepEQFalse
+#  condition: and(succeeded(), eq(stageDependencies.stage_build_test.outputs['job_build_and_test.SETVARS.DEPLOY_ENV'], 'dev01'))
+#  dependsOn: stage_build_test
+#  jobs:
+#  - job: B1
+#    steps:
+#    - script: echo should skip
+#
+## does NOT run
+#- stage: stgdepNEFalse
+#  condition: and(succeeded(), ne(stageDependencies.stage_build_test.outputs['job_build_and_test.SETVARS.DEPLOY_ENV'], 'dev01'))
+#  dependsOn: stage_build_test
+#  jobs:
+#  - job: B1
+#    steps:
+#    - script: echo should skip
+
+###############################################
+# Stage 2: DEPLOY DEV
+###############################################
+- stage: stage_deploy_dev
+  displayName: 'stage: deploy_dev'
+  dependsOn: stage_build_test
+  pool:
+    vmImage: 'windows-2019'
+###############################################
+# Stage level outputs are due to arrive soon, once they have we can use a stage dependency to save us doing the additional
+#  verify job: Coming Soon: https://github.com/microsoft/azure-pipelines-tasks/issues/4743
+###############################################
+  condition: | # for when the azure feature is available for stageDependencies
+    and
+    (
+      succeeded(),
+      ne(stageDependencies.stage_build_test.outputs['job_build_and_test.SETVARS.DEPLOY_ENV'], 'none')
+    )
+  variables:
+  - name: REGION
+    value: eu-west-1
+  - name: AWSCredentials
+    value: gl-sf-connectors-dev
+  jobs:
+    ###############################################
+    ## Deploy AWS Stacks - Dev - eu-west-1
+    ###############################################
+  - deployment: deploy_dev
+    displayName: 'deploy: dev'
+    environment:
+      name: $(PRODUCT)-dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # is this maintainable? limiting permissions is potentially undermined by the number of resources this needs to create
+          #  potential alternative would be to create one centralised stack for the connectors account and have the lambda for This
+          #  detect across connectors based on prefix. the 's' directory is the sources directory on the build machine
+          - checkout: lsm-servicefabric
+            path: s/lsm-servicefabric/
+          # DEBUG shows the environment variables being set, making it easier to see what's configured. Secrets are automatically *** out by devops
+          - task: CmdLine@2
+            displayName: 'DEBUG: show environment variables'
+            inputs:
+              script: 'printenv'
+          # execute the environment script to get vars from the build stage
+          - task: Bash@3
+            name: AWS_DEPLOY
+            displayName: 'prep: execute environment script'
+            inputs:
+              targetType: inline
+              script: |
+                . ${AGENT_BUILDDIRECTORY}/${BUILD_ARTIFACT_NAME}/environment.sh
+                ## environment specific variables
+                echo "##vso[task.setvariable variable=SUMO_ENDPOINT_URL;isOutput=true]https://endpoint2.collection.sumologic.com/receiver/v1/http/ZaVnC4dhaV0PK8bhhYYdvo_62tIiscbsXB0o9j3DBjabtJnI0Dh_PuPlJ1dj9-VDKrBCz88sK8URry-S-a6myyfwaQXzUZhWXQyUx4aYx5sfp8X9XnOh5Q=="
+                echo "##vso[task.setvariable variable=SUMO_EMAIL_ID;isOutput=true]sfab_bankingcloud@sage.com"
+                echo "##vso[task.setvariable variable=DOMAIN_NAME;isOutput=true]dev-fabric.sage.com"
+                echo "##vso[task.setvariable variable=DOMAIN_CERT;isOutput=true]arn:aws:acm:us-east-1:635610206560:certificate/b3b7faaf-f267-4465-9d20-e8e8324a5c10"
+                ## common variables
+                echo "##vso[task.setvariable variable=DEPLOY_FOLDER;isOutput=true]${AGENT_BUILDDIRECTORY}/${BUILD_ARTIFACT_NAME}"
+                echo "##vso[task.setvariable variable=DEPLOY_FOLDER_1;isOutput=true]${AGENT_BUILDDIRECTORY}/${BUILD_NODE_ARTIFACT_NAME}"
+                echo "##vso[task.setvariable variable=PRODUCT;isOutput=true]${PRODUCT}"
+                echo "##vso[task.setvariable variable=REGION;isOutput=true]${REGION}"
+
+          # don't deploy params if infrastructure only. Allows us to initialise the infrastructure including the KMS key we'll
+          #  use for config
+          - ${{ if ne(variables['AWS_DEPLOY.INITIAL_INFRASTRUCTURE'], 'true') }}:
+            - template: ./templates/params-upload.yml
+              parameters:
+                AWS_CREDENTIALS: ${{ variables.AWSCredentials }}
+
+          # don't deploy infrastructure if params only is specified - sometimes we just want to update parameter store
+          #  note, param-store changes will take a few minutes to take affect on the lambdas
+          - ${{ if ne(variables['AWS_DEPLOY.PARAMS_ONLY'], 'true') }}:
+            - template: ./templates/aws-deploy.yml
+              parameters:
+                AWS_CREDENTIALS: ${{ variables.AWSCredentials }}

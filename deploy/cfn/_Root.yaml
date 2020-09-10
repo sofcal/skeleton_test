@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: root'
+Parameters:
+  Product:
+    Description: Concatenation of the Service name and the Connector Name. e.g. bnkc-skeleton
+    Type: String
+  Environment:
+    Description: Name of the environment. This will be used in all resource prefixes to differentiate between environments
+    Type: String
+  BuildNumber:
+    Description: The build number for the package being deployed
+    Type: String
+  DomainName:
+    Description: Domain name for the connectors
+    Type: String
+  DomainCertificateArn:
+    Description: Arn of the certificate for the custom domain
+    Type: String
+
+Resources:
+  Variables:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub >-
+        https://s3.amazonaws.com/${Product}-${Environment}-${AWS::Region}/${BuildNumber}/cfn/Variables.yaml
+      Parameters:
+        Product: !Ref Product
+        Environment: !Ref Environment
+
+  Infrastructure:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/Infrastructure.yaml'
+        - S3BucketCFN: !GetAtt
+            - Variables
+            - Outputs.S3BucketCFN
+      Parameters:
+        VariablesStackName: !GetAtt
+          - Variables
+          - Outputs.StackName
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - Variables
+
+  Components:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/Components.yaml'
+        - S3BucketCFN: !GetAtt
+            - Variables
+            - Outputs.S3BucketCFN
+      Parameters:
+        VariablesStackName: !GetAtt
+          - Variables
+          - Outputs.StackName
+        IAMStackName: !GetAtt
+          - Infrastructure
+          - Outputs.IAMStackName
+        BuildNumber: !Ref BuildNumber
+        DomainName: !Ref DomainName
+        DomainCertificateArn: !Ref DomainCertificateArn
+    DependsOn:
+      - Variables
+      - Infrastructure
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack

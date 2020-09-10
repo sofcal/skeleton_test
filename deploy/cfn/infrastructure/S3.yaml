@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 Stack
+
+Parameters:
+  VPCTemplate:
+    Description: Template Name to link exports
+    Default: ''
+    Type: String
+  SQSTemplate:
+    Description: Template Name to link exports
+    Default: ''
+    Type: String
+
+Resources:
+  DataUploads:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      AccessControl: Private
+      BucketName: !Sub
+        - '${Product}-${Environment}-${AWS::Region}-data'
+        - Product: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+          Environment: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Environment'

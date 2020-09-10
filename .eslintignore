@@ -1,0 +1,21 @@
+# /node_modules/* and /bower_components/* ignored by default
+
+**/*.json
+packages/**/test/*
+packages/module.*/lib/**/*.js
+packages/util.*.module.*/lib/**/*.js
+packages/**/coverage/*
+packages/**/nyc_output/*
+packages/**/node_modules/*
+
+build/*
+reports/*
+templates/*
+jspm_packages/*
+.serverless/*
+.webpack/*
+.nyc_output/*
+.idea/*
+.vscode/*
+coverage/*
+test/*

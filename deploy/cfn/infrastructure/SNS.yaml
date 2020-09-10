@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: infrastructure: sns (SNS Topics for alert notifications)'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the _Variables stack, which holds prefixes and other shared variables'
+    Type: String
+
+Resources:
+  SNSCritical:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub
+        - '${ResourcePrefix}-critical'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+  SNSWarning:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub
+        - '${ResourcePrefix}-warning'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+
+  ParamStoreSNSCritical:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Name of the SNS Critical topic for reporting critical issues from code
+      Name: !Sub
+        - '${ParamStorePrefix}/Services.SNS.Identifiers.Critical'
+        - ParamStorePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ParamStorePrefix'
+      Tags:
+        createdBy: sns.template
+      Tier: Standard
+      Type: String
+      Value: !Ref SNSCritical
+
+  ParamStoreSNSWarning:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Name of the SNS Warning topic for reporting critical issues from code
+      Name: !Sub
+        - '${ParamStorePrefix}/Services.SNS.Identifiers.Warning'
+        - ParamStorePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ParamStorePrefix'
+      Tags:
+        createdBy: sns.template
+      Tier: Standard
+      Type: String
+      Value: !Ref SNSWarning
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack
+  SNSCritical:
+    Value: !Ref SNSCritical
+    Description: SNS Critical Topic
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSCritical'
+  SNSWarning:
+    Value: !Ref SNSWarning
+    Description: SNS Warning Topic
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSWarning'

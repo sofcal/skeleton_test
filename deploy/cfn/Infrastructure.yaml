@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: infrastructure (parent stack for infrastructure level resources, e.g. IAM, DB, KMS)'
+
+Parameters:
+  VariablesStackName:
+    Description: >-
+      Stack name of the _Variables stack, which holds prefixes and other shared
+      variables
+    Type: String
+  BuildNumber:
+    Description: The build number for the package being deployed
+    Type: String
+Resources:
+  SNS:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/infrastructure/SNS.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+  DynamoDB:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/infrastructure/DynamoDB.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        SNSStackName: !GetAtt
+          - SNS
+          - Outputs.StackName
+    DependsOn:
+      - SNS
+  KMS:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/infrastructure/KMS.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+  IAM:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/infrastructure/IAM.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        KMSStackName: !GetAtt
+          - KMS
+          - Outputs.StackName
+    DependsOn:
+      - KMS
+      - DynamoDB
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack
+  SNSStackName:
+    Value: !GetAtt
+      - SNS
+      - Outputs.StackName
+    Description: SNS Stack name
+  DynamoDBStackName:
+    Value: !GetAtt
+      - DynamoDB
+      - Outputs.StackName
+    Description: DynamoDB Stack name
+  KMSStackName:
+    Value: !GetAtt
+      - KMS
+      - Outputs.StackName
+    Description: KMS Stack name
+  IAMStackName:
+    Value: !GetAtt
+      - IAM
+      - Outputs.StackName
+    Description: IAM Stack name

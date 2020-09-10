@@ -1,0 +1,37 @@
+{
+  "name": "@sage/bnkc-skeleton-util-build-batch-step",
+  "version": "0.0.14",
+  "description": "Lambda function to update the status of a batch process",
+  "private": true,
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sage/wpb-banking-provider-api.git"
+  },
+  "keywords": [
+    "sage",
+    "lambda",
+    "bankingcloud"
+  ],
+  "author": "Sage",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sage/wpb-banking-provider-api/issues"
+  },
+  "homepage": "https://github.com/Sage/wpb-banking-provider-api#readme",
+  "scripts": {
+    "clean": "rimraf ./coverage/ && rimraf ./.nyc_output/ && rimraf ./.serverless/ && rimraf ./node_modules/",
+    "test": "",
+    "cover": "",
+    "report": "",
+    "cover:report": "",
+    "int": "",
+    "build": "node ./lib/generator",
+    "postbuild": "mkdir -p ../../build/packages && mv ./lib/step.json ../../build/packages/step.json",
+    "unlock": "rimraf package-lock.json",
+    "lint": "eslint ./lib/**"
+  }
+}

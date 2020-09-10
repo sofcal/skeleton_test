@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: components: step'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  S3FullPackagePrefix:
+    Description: 'full package s3 prefix including bucket. Holds step.json content'
+    Type: 'String'
+  IAMStackName:
+    Description: Stack Name to link IAM exports
+    Type: String
+  BuildNumber:
+    Description: Build Number for Provider API
+    Type: String
+  Component:
+    Description: Name of this component
+    Default: Migrations
+    Type: String
+
+Resources:
+
+  RoleMigrationsLambda:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub
+        - '${ResourcePrefix}-RoleMigrationsLambda'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      ManagedPolicyArns:
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-ParamStoreAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-KMSConfigKeyAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-DynamoDBAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-LoggingAccess'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+
+  Migrations:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleMigrationsLambda
+          - Arn
+        Component: !Ref Component
+        Name: Migrations
+        Handler: 'Db.Migrations::AfterbanksConnector.DbMigrations.LambdaEntryPoint::FunctionHandlerAsync'
+        Description: 'Migrations lambda'
+        S3PackageName: 'Migrations.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleMigrationsLambda
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack

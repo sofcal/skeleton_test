@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: components: step'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  S3FullPackagePrefix:
+    Description: 'full package s3 prefix including bucket. Holds step.json content'
+    Type: 'String'
+  IAMStackName:
+    Description: Stack Name to link IAM exports
+    Type: String
+  BuildNumber:
+    Description: Build Number for Provider API
+    Type: String
+  Component:
+    Description: Name of this component
+    Default: Step
+    Type: String
+  StepFunctionName:
+    Description: Name of the step function
+    Default: Step
+    Type: String
+
+Resources:
+
+  RoleLambda:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub
+        - '${ResourcePrefix}-RoleLambda'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      ManagedPolicyArns:
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-ParamStoreAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-KMSConfigKeyAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-DynamoDBAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-StepAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-SNSAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-LoggingAccess'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+
+  RoleStep:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      ManagedPolicyArns:
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-LambdaAccess'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+
+  StepStatus:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleLambda
+          - Arn
+        Component: !Ref Component
+        Name: StepStatus
+        Handler: 'lib/index.run'
+        Description: 'Step Status lambda'
+        S3PackageName: 'lambda.batch.status.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleLambda
+
+  Step:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      RoleArn: !GetAtt
+        - RoleStep
+        - Arn
+      StateMachineName: !Sub
+        - '${ResourcePrefix}-${StepFunctionName}'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      'Fn::Transform':
+        Name: 'AWS::Include'
+        Parameters:
+          Location: !Join
+            - ''
+            - - !Ref S3FullPackagePrefix
+              - step.json
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+    DependsOn:
+      - StepStatus
+
+  ParamStoreAccountSyncStep:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Account Sync Step ARN
+      Name: !Sub
+        - '${ParamStorePrefix}/Services.Step.Identifiers.${StepFunctionName}'
+        - ParamStorePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ParamStorePrefix'
+      Tags:
+        createdBy: step.template
+      Tier: Standard
+      Type: String
+      Value: !Ref Step
+    DependsOn:
+      - Step
+
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack

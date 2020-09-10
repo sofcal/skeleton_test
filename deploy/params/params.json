@@ -1,0 +1,22 @@
+[
+  {
+    "ParameterKey": "Product",
+    "ParameterValue": "<AWS_DEPLOY.PRODUCT>"
+  },
+  {
+    "ParameterKey": "BuildNumber",
+    "ParameterValue": "<AWS_DEPLOY.PACKAGE_VERSION>"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "<AWS_DEPLOY.DEPLOY_ENV>"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "<AWS_DEPLOY.DOMAIN_NAME>"
+  },
+  {
+    "ParameterKey": "DomainCertificateArn",
+    "ParameterValue": "<AWS_DEPLOY.DOMAIN_CERT>"
+  }
+]

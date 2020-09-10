@@ -1,0 +1,43 @@
+{
+  "StartAt": "Try",
+  "States": {
+    "Try": {
+      "Type": "Parallel",
+      "Next": "FinalState",
+      "OutputPath": "$.[0]",
+      "Branches": [{
+        "StartAt": "StatusManagerStart",
+        "States": {
+          "StatusManagerStart": {
+            "Type": "Task",
+            "Resource": "${StepStatusArn}",
+            "Parameters": {
+              "state.$": "$",
+              "stage": "start"
+            },
+
+            "End": true
+          }
+        }
+      }],
+      "Catch": [{
+        "ErrorEquals": [ "States.ALL" ],
+        "Next": "ErrorHandler"
+      }]
+    },
+    "ErrorHandler": {
+      "Type": "Task",
+      "Resource": "${StepStatusArn}",
+      "Parameters": {
+        "state.$": "$",
+        "stage": "error"
+      },
+      "Next": "FinalState"
+    },
+    "FinalState": {
+      "Type": "Pass",
+      "OutputPath": "$",
+      "End": true
+    }
+  }
+}

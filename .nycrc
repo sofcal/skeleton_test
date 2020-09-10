@@ -1,0 +1,24 @@
+{
+  "all": true,
+  "include": [
+    "packages/**"
+  ],
+  "exclude": [
+    "**/test/",
+    "**/packages/lambda.testing.regression/",
+    "**/packages/lambda*/lib/index.js"
+  ],
+  "cache": false,
+  "lines": 5,
+  "statements": 5,
+  "functions": 5,
+  "branches": 5,
+  "watermarks": {
+    "lines": [0, 95],
+    "functions": [0, 95],
+    "branches": [0, 95],
+    "statements": [0, 95]
+  },
+  "check-coverage": false,
+  "reporter": ["lcov", "text-summary", "cobertura"]
+}

@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: lambda: generic'
+Metadata: {}
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the _Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  BuildNumber:
+    Description: The build number for the package being deployed
+    Type: String
+  Role:
+    Description: The IAM role for this lambda
+    Type: String
+  Component:
+    Description: Component this lambda function belongs to
+    Type: String
+  Name:
+    Description: Name of this lambda
+    Type: String
+  Description:
+    Description: Description of this lambda's functionality
+    Type: String
+  S3PackageName:
+    Description: package name in s3
+    Type: String
+  Handler:
+    Description: Handler function for this lambda
+    Default: lib/index.run
+    Type: String
+  Runtime:
+    Description: Node runtime for this lambda function
+    Default: nodejs12.x
+    Type: String
+  Timeout:
+    Description: Timeout for this lambda
+    Default: '60'
+    Type: String
+  MemorySize:
+    Description: Amount of memory to allocate to this lambda
+    Default: '3008'
+    Type: String
+Resources:
+  Function:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Role: !Ref Role
+      Code:
+        S3Bucket: !ImportValue
+          'Fn::Sub': '${VariablesStackName}-S3BucketPackage'
+        S3Key: !Sub >-
+          ${BuildNumber}/packages/${S3PackageName}
+      FunctionName: !Sub
+        - '${ResourcePrefix}-${Name}'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      Description: !Ref Description
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      Timeout: !Ref Timeout
+      MemorySize: !Ref MemorySize
+      Environment:
+        Variables:
+          Environment: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Environment'
+          # this allows .net core to load the appropriate environment appsettings
+          ASPNETCORE_ENVIRONMENT: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Environment'
+      Tags:
+        - Key: Region
+          Value: !Ref 'AWS::Region'
+        - Key: Environment
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Environment'
+        - Key: Component
+          Value: !Ref Component
+        - Key: Version
+          Value: !Ref BuildNumber
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+Outputs:
+  Arn:
+    Value: !GetAtt
+      - Function
+      - Arn
+    Description: 'lambda ARN '

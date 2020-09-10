@@ -1,0 +1,15 @@
+parameters:
+  AWS_CREDENTIALS: ''
+ 
+# depends on environment variables being set:
+##  AWS_DEPLOY.REGION ##  AWS_DEPLOY.PRODUCT ##  AWS_DEPLOY.DEPLOY_ENV ##  AWS_DEPLOY.DEPLOY_FOLDER
+      
+steps:
+- task: AmazonWebServices.aws-vsts-tools.AWSPowerShellModuleScript.AWSPowerShellModuleScript@1
+  displayName: 'create/update ssm parameter-store'
+  continueOnError: true
+  inputs:
+    awsCredentials: '${{ parameters.AWS_CREDENTIALS }}'
+    regionName: '$(AWS_DEPLOY.REGION)'
+    arguments: '-region $(AWS_DEPLOY.REGION) -product $(AWS_DEPLOY.PRODUCT) -env $(AWS_DEPLOY.DEPLOY_ENV) -folder $(AWS_DEPLOY.DEPLOY_FOLDER)/deploy/app-config/'
+    filePath: '$(AWS_DEPLOY.DEPLOY_FOLDER)/deploy/app-config/scripts/Write-SSMParameters.ps1'

@@ -1,0 +1,9 @@
+{
+  "DefinitionString": {
+    "Fn::Sub": [
+      {
+        "StepStatusArn": { "Fn::GetAtt" : [ "StepStatus", "Outputs.Arn" ]}
+      }
+    ]
+  }
+}

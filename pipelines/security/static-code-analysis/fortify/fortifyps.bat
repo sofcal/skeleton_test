@@ -1,0 +1,1 @@
+powershell -ExecutionPolicy Unrestricted -file Run-Fortify.ps1 

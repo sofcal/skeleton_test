@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: infrastructure: kms (KMS keys)'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the _Variables stack, which holds prefixes and other shared variables'
+    Type: String
+
+Resources:
+  KMSConfigKey:
+    Type: 'AWS::KMS::Key'
+    DeletionPolicy: Retain
+    Properties:
+      Description: !Sub
+        - '${ResourcePrefix}-config'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: !Sub
+          - '${ResourcePrefix}-config-policy'
+          - ResourcePrefix: !ImportValue
+              'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+        Statement:
+          - Sid: Allow access for Key Administrators
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:sts::${AWS::AccountId}:root'
+            Action:
+              - 'kms:*'
+            Resource: '*'
+
+  KMSConfigAlias:
+    Type: 'AWS::KMS::Alias'
+    Properties:
+      TargetKeyId: !Ref KMSConfigKey
+      AliasName: !Sub
+        - 'alias/${ResourcePrefix}-config'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+
+  ParamStoreKMS:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: kms config key id
+      Name: !Sub
+        - '${ParamStorePrefix}/Services.KMS.Identifiers.Config'
+        - ParamStorePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ParamStorePrefix'
+      Tags:
+        createdBy: kms.template
+      Tier: Standard
+      Type: String
+      Value: !Ref KMSConfigKey
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack
+  KMSConfigKey:
+    Value: !Ref KMSConfigKey
+    Description: KMS Config Key
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSConfigKey'
+  KMSConfigKeyArn:
+    Value: !GetAtt
+      - KMSConfigKey
+      - Arn
+    Description: KMS Config Key ARN
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSConfigKeyArn'

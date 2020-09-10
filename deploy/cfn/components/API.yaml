@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: components: API'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  IAMStackName:
+    Description: Stack Name to link IAM exports
+    Type: String
+  BuildNumber:
+    Description: Build Number for Provider API
+    Type: String
+  Component:
+    Description: Name of this component
+    Default: API
+    Type: String
+
+Resources:
+  # IAM role for the API lambda
+  RoleAPI:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub
+        - '${ResourcePrefix}-RoleAPI'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      ManagedPolicyArns:
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-ParamStoreAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-KMSConfigKeyAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-DynamoDBAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-StepAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-SNSAccess'
+        - !ImportValue
+          'Fn::Sub': '${IAMStackName}-LoggingAccess'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+
+  ApiNotifications:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleAPI
+          - Arn
+        Component: !Ref Component
+        Name: ApiNotifications
+        Handler: 'lib/index.run'
+        Description: 'API Handler API notification route'
+        S3PackageName: 'lambda.api.notifications.post.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleAPI
+
+  ApiAuth:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleAPI
+          - Arn
+        Component: !Ref Component
+        Name: ApiAuth
+        Handler: 'lib/index.run'
+        Description: 'API Handler API auth route'
+        S3PackageName: 'lambda.api.auth.get.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleAPI
+
+  ApiAuthRefresh:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleAPI
+          - Arn
+        Component: !Ref Component
+        Name: ApiAuthRefresh
+        Handler: 'lib/index.run'
+        Description: 'API Handler API auth refresh route'
+        S3PackageName: 'lambda.api.authrefresh.get.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleAPI
+
+  ApiCallback:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/generics/LambdaNoVPC.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        Role: !GetAtt
+          - RoleAPI
+          - Arn
+        Component: !Ref Component
+        Name: ApiCallback
+        Handler: 'lib/index.run'
+        Description: 'API Handler API callback route'
+        S3PackageName: 'lambda.api.callback.post.zip'
+        BuildNumber: !Ref BuildNumber
+    DependsOn:
+      - RoleAPI
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack

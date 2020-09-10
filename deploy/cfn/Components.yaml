@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: components (parent stack for component level resources e.g. API, Step)'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the _Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  IAMStackName:
+    Description: Stack Name to link IAM exports
+    Type: String
+  BuildNumber:
+    Description: Build Number for Provider API
+    Type: String
+  DomainName:
+    Description: Domain name for the connectors
+    Type: String
+  DomainCertificateArn:
+    Description: Arn of the certificate for the custom domain
+    Type: String
+Resources:
+  Step:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/components/Step.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        IAMStackName: !Ref IAMStackName
+        BuildNumber: !Ref BuildNumber
+        S3FullPackagePrefix: !Sub
+          - 's3://${Bucket}/${BuildNumber}/packages/'
+          - Bucket: !ImportValue
+              'Fn::Sub': '${VariablesStackName}-S3BucketPackage'
+  APIGateway:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/components/APIGateway.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        IAMStackName: !Ref IAMStackName
+        LambdaArnPrefix: !Sub
+          - 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}'
+          - ResourcePrefix: !ImportValue
+              'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+        S3FullPackagePrefix: !Sub
+          - 's3://${Bucket}/${BuildNumber}/packages/'
+          - Bucket: !ImportValue
+              'Fn::Sub': '${VariablesStackName}-S3BucketPackage'
+        BuildNumber: !Ref BuildNumber
+        Environment: !ImportValue
+          'Fn::Sub': '${VariablesStackName}-Environment'
+        DomainName: !Ref DomainName
+        DomainCertificateArn: !Ref DomainCertificateArn
+
+  API:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Sub
+        - '${S3BucketCFN}/${BuildNumber}/cfn/components/API.yaml'
+        - S3BucketCFN: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+      Parameters:
+        VariablesStackName: !Ref VariablesStackName
+        IAMStackName: !Ref IAMStackName
+        BuildNumber: !Ref BuildNumber
+
+#  Migrations:
+#    Type: 'AWS::CloudFormation::Stack'
+#    Properties:
+#      TemplateURL: !Sub
+#        - '${S3BucketCFN}/${BuildNumber}/cfn/components/Migrations.yaml'
+#        - S3BucketCFN: !ImportValue
+#            'Fn::Sub': '${VariablesStackName}-S3BucketCFN'
+#      Parameters:
+#        VariablesStackName: !Ref VariablesStackName
+#        IAMStackName: !Ref IAMStackName
+#        BuildNumber: !Ref BuildNumber
+#        S3FullPackagePrefix: !Sub
+#          - 's3://${Bucket}/${BuildNumber}/packages/'
+#          - Bucket: !ImportValue
+#              'Fn::Sub': '${VariablesStackName}-S3BucketPackage'
+  #APISwaggerRender:
+  #  Type: 'AWS::CloudFormation::Stack'
+  #  Properties:
+  #    TemplateURL: !Sub
+  #      - '${CFNPrefix}/components/API.SwaggerRender.template'
+  #      - CFNPrefix: !ImportValue
+  #          'Fn::Sub': '${VariablesStackName}-CFNPrefix'
+  #    Parameters:
+  #      VariablesStackName: !Ref VariablesStackName
+  #      VPCStackName: !Ref VPCStackName
+  #      LoggingStackName: !Ref LoggingStackName
+  #      SecurityGroupsStackName: !Ref SecurityGroupsStackName
+  #      IAMStackName: !Ref IAMStackName
+  #      BuildNumber: !Ref BuildNumber
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack

@@ -1,0 +1,101 @@
+parameters:
+  AWS_CREDENTIALS: ''
+ 
+# depends on environment variables being set:
+##  AWS_DEPLOY.REGION ##  AWS_DEPLOY.PRODUCT ##  AWS_DEPLOY.PACKAGE_VERSION ##  AWS_DEPLOY.DOMAIN_NAME
+##  AWS_DEPLOY.DOMAIN_CERT ##  AWS_DEPLOY.DEPLOY_ENV ##  AWS_DEPLOY.DEPLOY_FOLDER ##  AWS_DEPLOY_FOLDER_*
+##  AWS_DEPLOY.INFRASTRUCTURE_ONLY ##  AWS_DEPLOY.SUMO_ENDPOINT_URL ##  AWS_DEPLOY.SUMO_EMAIL_ID
+      
+steps:
+## DEBUG shows the environment variables being set, making it easier to see what's configured. Secrets are automatically *** out by devops
+#- task: CmdLine@2
+#  displayName: 'DEBUG: show environment variables'
+#  inputs:
+#    script: 'printenv'
+
+- task: Bash@3
+  displayName: 'prep: consolidate artifacts'
+  inputs:
+    targetType: inline
+    script: |
+      for varname in ${!AWS_DEPLOY_DEPLOY_FOLDER_*}
+      do
+        folder=${!varname}
+        if [ -d "$DIRECTORY" ]; then
+          echo "found additional deploy folder: ${folder}"
+          ls -lrta ${folder}/
+          cp -R ${folder}/. ${AWS_DEPLOY_DEPLOY_FOLDER}/packages/
+        fi;
+      done
+
+# add security tag to the pipeline
+- task: YodLabs.VariableTasks.AddTag.AddTag@0
+  displayName: 'prep: tag build'
+  inputs:
+    tags: |
+      $(AWS_DEPLOY.DEPLOY_ENV)
+          
+# replaces the tokens in the cfn params files with values from the environment / pipeline variables, etc
+- task: qetza.replacetokens.replacetokens-task.replacetokens@3
+  displayName: 'prep: replace cfn param tokens'
+  inputs:
+    rootDirectory: '$(AWS_DEPLOY.DEPLOY_FOLDER)/deploy/params'
+    targetFiles: '**/*.json'
+    tokenPrefix: '<'
+    tokenSuffix: '>'
+
+# uploads the cfn to an s3 bucket specific for this product and environment
+- task: AmazonWebServices.aws-vsts-tools.S3Upload.S3Upload@1
+  displayName: 'publish: cfn to s3'
+  inputs:
+    awsCredentials: '${{ parameters.AWS_CREDENTIALS }}'
+    regionName: '$(AWS_DEPLOY.REGION)'
+    bucketName: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)'
+    sourceFolder: '$(AWS_DEPLOY.DEPLOY_FOLDER)/deploy/cfn'
+    targetFolder: '$(AWS_DEPLOY.PACKAGE_VERSION)/cfn'
+    createBucket: true
+
+# uploads the packages to an s3 bucket specific for this product and environment
+- task: AmazonWebServices.aws-vsts-tools.S3Upload.S3Upload@1
+  displayName: 'publish: packages to s3'
+  condition: |
+    and
+    (
+      succeeded(),
+      ne(variables['AWS_DEPLOY.SKIP_BUILD'], 'true')
+    )
+  inputs:
+    awsCredentials: '${{ parameters.AWS_CREDENTIALS }}'
+    regionName: '$(AWS_DEPLOY.REGION)'
+    bucketName: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)'
+    sourceFolder: '$(AWS_DEPLOY.DEPLOY_FOLDER)/packages'
+    targetFolder: '$(AWS_DEPLOY.PACKAGE_VERSION)/packages'
+    createBucket: true
+    keyManagement: awsManaged
+    encryptionAlgorithm: AES256
+
+- template: sumologic/aws_collector/deploySumoCollector.yaml@lsm-servicefabric
+  parameters:
+    AWSCredentialsName: '${{ parameters.AWS_CREDENTIALS }}'
+    DeployRegion: '$(AWS_DEPLOY.REGION)'
+    ServiceName: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)'
+    SumoEndPointURL: $(AWS_DEPLOY.SUMO_ENDPOINT_URL)
+    SumoEmailID: $(AWS_DEPLOY.SUMO_EMAIL_ID)
+    LogGroupPattern: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)'
+    CheckoutPath: ''
+            
+# creates/updates stacks in AWS; because it builds nested stacks, we only need to kick off the root
+- task: AmazonWebServices.aws-vsts-tools.CloudFormationCreateOrUpdateStack.CloudFormationCreateOrUpdateStack@1
+  displayName: 'deploy: create/update stacks'
+  inputs:
+    awsCredentials: '${{ parameters.AWS_CREDENTIALS }}'
+    regionName: '$(AWS_DEPLOY.REGION)'
+    stackName: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)-root'
+    templateSource: s3
+    s3BucketName: '$(AWS_DEPLOY.PRODUCT)-$(AWS_DEPLOY.DEPLOY_ENV)-$(AWS_DEPLOY.REGION)'
+    s3ObjectKey: '$(AWS_DEPLOY.PACKAGE_VERSION)/cfn/_Root.yaml'
+    templateParametersFile: '$(AWS_DEPLOY.DEPLOY_FOLDER)/deploy/params/params.json'
+    useChangeSet: true
+    changeSetName: '$(AWS_DEPLOY.PRODUCT)-$(Build.BuildId)'
+    description: 'Updated by VSTS - $(AWS_DEPLOY.PRODUCT)-$(Build.BuildId)'
+    capabilityAutoExpand: true

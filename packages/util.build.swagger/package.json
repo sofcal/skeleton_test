@@ -1,0 +1,47 @@
+{
+  "name": "@sage/bnkc-skeleton-util-build-swagger",
+  "version": "0.0.14",
+  "description": "Generator project for Swagger",
+  "private": true,
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sage/wpb-banking-provider-api.git"
+  },
+  "keywords": [
+    "sage",
+    "lambda",
+    "bankingcloud"
+  ],
+  "author": "Sage",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sage/wpb-banking-provider-api/issues"
+  },
+  "dependencies": {
+    "bluebird": "3.5.1",
+    "js-yaml": "3.13.1",
+    "openapi-schema-to-json-schema": "2.2.0",
+    "safe-access": "0.1.0",
+    "swagger-jsdoc": "3.4.0",
+    "underscore": "1.9.0",
+    "underscore.string": "3.3.5"
+  },
+  "homepage": "https://github.com/Sage/wpb-banking-provider-api#readme",
+  "scripts": {
+    "clean": "rimraf ./coverage/ && rimraf ./.nyc_output/ && rimraf ./.serverless/ && rimraf ./node_modules/",
+    "test": "",
+    "cover": "",
+    "report": "",
+    "cover:report": "",
+    "int": "",
+    "build": "echo \"do nothing on standard build, swagger must be run at end\"",
+    "buildX": "$(npm bin)/swagger-jsdoc -d ./lib/generator.js",
+    "postbuildX": "mkdir -p ../../build/packages && mv -v ./lib/swagger/.generated/* ../../build/packages/ && mv -v ./lib/postman/.generated/* ../../build/packages/",
+    "unlock": "rimraf package-lock.json",
+    "lint": "eslint ./lib/**"
+  }
+}

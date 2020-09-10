@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'bnkc-skeleton: infrastructure: iam (policies defining access rights for infrastructure resources)'
+
+Parameters:
+  VariablesStackName:
+    Description: 'Stack name of the _Variables stack, which holds prefixes and other shared variables'
+    Type: String
+  KMSStackName:
+    Description: 'Stack name of the KMS stack, which holds KMS master key resources'
+    Type: String
+
+Resources:
+  PolicyDynamoDBAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DynamoDBAccess
+            Effect: Allow
+            Action:
+              - dynamodb:DescribeTable
+              - dynamodb:ListTables
+              - dynamodb:DeleteItem
+              - dynamodb:ListTagsOfResource
+              - dynamodb:TagResource
+              - dynamodb:DescribeTable
+              - dynamodb:GetItem
+              - dynamodb:DescribeLimits
+              - dynamodb:BatchGetItem
+              - dynamodb:UpdateTimeToLive
+              - dynamodb:BatchWriteItem
+              - dynamodb:ConditionCheckItem
+              - dynamodb:UntagResource
+              - dynamodb:PutItem
+              - dynamodb:Scan
+              - dynamodb:Query
+              - dynamodb:DescribeStream
+              - dynamodb:UpdateItem
+              - dynamodb:DescribeTimeToLive
+              - dynamodb:ListStreams
+              - dynamodb:ListGlobalTables
+              - dynamodb:GetShardIterator
+              - dynamodb:GetRecords
+            Resource: !Sub
+              - 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Product}-${Environment}*'
+              - Product: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Product'
+                Environment: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Environment'
+
+  PolicySNSAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: SNSAccess
+            Effect: Allow
+            Action:
+              - 'sns:ListTopics'
+              - 'sns:Publish'
+            Resource: !Sub
+              - 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Product}-${Environment}*'
+              - Product: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Product'
+                Environment: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Environment'
+
+  PolicyKMSConfigKeyAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ConfigKeyAccess
+            Effect: Allow
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:DescribeKey'
+            Resource: !ImportValue
+              'Fn::Sub': '${KMSStackName}-KMSConfigKeyArn'
+
+  PolicyParamStoreAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: SSMAccess
+            Effect: Allow
+            Action:
+              - 'ssm:GetParametersByPath'
+              - 'ssm:GetParameters'
+            Resource: !Sub
+               - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Product}-${Environment}/*'
+               - Product: !ImportValue
+                   'Fn::Sub': '${VariablesStackName}-Product'
+                 Environment: !ImportValue
+                    'Fn::Sub': '${VariablesStackName}-Environment'
+
+  PolicyLoggingAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: '*'
+          - Sid: CloudWatch
+            Effect: Allow
+            Action:
+              - 'logs:DescribeSubscriptionFilters'
+              - 'logs:PutSubscriptionFilter'
+            Resource: '*'
+
+  PolicyStepAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: Exec
+            Effect: Allow
+            Action:
+              - 'states:StartExecution'
+              - 'states:DescribeExecution'
+            Resource: !Sub
+              - 'arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Product}-${Environment}-*'
+              - Product: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Product'
+                Environment: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Environment'
+
+  PolicyLambdaAccess:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'lambda:InvokeFunction'
+            Resource: !Sub
+              - 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Product}-${Environment}-*'
+              - Product: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Product'
+                Environment: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Environment'
+
+  PolicyS3Access:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:*'
+            Resource: !Sub
+              - 'arn:aws:s3:::${Product}-${Environment}-${AWS::Region}-*'
+              - Product: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Product'
+                Environment: !ImportValue
+                  'Fn::Sub': '${VariablesStackName}-Environment'
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack
+  PolicyDynamoDBAccess:
+    Value: !Ref PolicyDynamoDBAccess
+    Description: Policy for access to DynamoDB
+    Export:
+      Name: !Sub '${AWS::StackName}-DynamoDBAccess'
+  PolicyKMSConfigKeyAccess:
+    Value: !Ref PolicyKMSConfigKeyAccess
+    Description: Policy for access to config KMS key
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSConfigKeyAccess'
+  PolicyParamStoreAccess:
+    Value: !Ref PolicyParamStoreAccess
+    Description: Policy for access to parameter store values
+    Export:
+      Name: !Sub '${AWS::StackName}-ParamStoreAccess'
+  PolicyStepAccess:
+    Value: !Ref PolicyStepAccess
+    Description: Policy for access to Step
+    Export:
+      Name: !Sub '${AWS::StackName}-StepAccess'
+  PolicyLambdaAccess:
+    Value: !Ref PolicyLambdaAccess
+    Description: Policy for access to lambdas
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaAccess'
+  PolicySNSAccess:
+    Value: !Ref PolicySNSAccess
+    Description: Policy for access to SNS topics
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSAccess'
+  PolicyLoggingAccess:
+    Value: !Ref PolicyLoggingAccess
+    Description: Policy for access to cloudwatch logging
+    Export:
+      Name: !Sub '${AWS::StackName}-LoggingAccess'
+  PolicyS3Access:
+    Value: !Ref PolicyS3Access
+    Description: Policy for access to S3 transaction upload bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-S3Access'

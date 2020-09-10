@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.1.xsd">
+    <suppress>
+        <notes><![CDATA[CVEs complaining about everyting SAGE ]]></notes>
+        <cve>CVE-2006-4711</cve>
+        <cve>CVE-2007-0896</cve>
+        <cve>CVE-2006-4712</cve>
+        <cve>CVE-2003-1242</cve>
+        <cve>CVE-2003-1243</cve>
+    </suppress>
+</suppressions> 

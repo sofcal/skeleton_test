@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'bnkc-skeleton: infrastructure: dynamoDB (database stack, single table)'
+
+Parameters:
+  VariablesStackName:
+    Description: >-
+      Stack name of the _Variables stack, which holds prefixes and other shared variables
+    Type: String
+  SNSStackName:
+    Description: >-
+      Stack name of the SNS stack, which holds SNS resources
+    Type: String
+  DDBReadCapacity:
+    Type: String
+    Description: Read capacity for the DynamoDB tables.
+    Default: "5"
+  DDBWriteCapacity:
+    Type: String
+    Description: Write capacity for the DynamoDB tables.
+    Default: "5"
+  DDBMaxReadCapacity:
+    Type: String
+    Description: Max read capacity for the DynamoDB tables.
+    Default: "500"
+  DDBMaxWriteCapacity:
+    Type: String
+    Description: Max write capacity for the DynamoDB tables.
+    Default: "500"
+  DbPointInTimePrefix:
+    Type: String
+    Description: The prefix name for all tables
+    Default: v1
+
+Resources:
+  DataTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Sub
+        - '${ResourcePrefix}-${DbPointInTimePrefix}-Data'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      AttributeDefinitions:
+        - AttributeName: PrimaryKey
+          AttributeType: S
+        - AttributeName: CompositeKey
+          AttributeType: S
+        - AttributeName: Id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: PrimaryKey
+          KeyType: HASH
+        - AttributeName: Id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: CompositeLookup
+          KeySchema:
+            - AttributeName: PrimaryKey
+              KeyType: HASH
+            - AttributeName: CompositeKey
+              KeyType: RANGE
+          Projection:
+            ProjectionType: KEYS_ONLY
+      TimeToLiveSpecification:
+        AttributeName: TimeToLive
+        Enabled: true
+      Tags:
+        - Key: Product
+          Value: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-Product'
+
+  AlarmDDBDataTableReadThrottleEvents:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${ResourcePrefix}-${DbPointInTimePrefix}-Data-ReadThrottleEvents'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      AlarmDescription: "Trigger an alarm when ReadThrottleEvents occur on Data Table"
+      Namespace: AWS/DynamoDB
+      MetricName: ReadThrottleEvents
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DataTable
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 0
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+      OKActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+
+  AlarmDDDataTableWriteThrottleEvents:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${ResourcePrefix}-${DbPointInTimePrefix}-Data-WriteThrottleEvents'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      AlarmDescription: "Trigger an alarm when WriteThrottleEvents occur on Data Table"
+      Namespace: AWS/DynamoDB
+      MetricName: WriteThrottleEvents
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DataTable
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 0
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+      OKActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+  AlarmDDBDataTableProvisionedRead:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${ResourcePrefix}-${DbPointInTimePrefix}-Data-ProvisionedRead'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      AlarmDescription: "Trigger an alarm when ProvisionedDDBReadCapacityUnits is high on Data Tables"
+      Namespace: AWS/DynamoDB
+      MetricName: ProvisionedDDBReadCapacityUnits
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DataTable
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 450
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+      OKActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+  AlarmDDBDataTableProvisionedWrite:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${ResourcePrefix}-${DbPointInTimePrefix}-Data-ProvisionedWrite'
+        - ResourcePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ResourcePrefix'
+      AlarmDescription: "Trigger an alarm when ProvisionedDDBWriteCapacityUnits is high on Data Table"
+      Namespace: AWS/DynamoDB
+      MetricName: ProvisionedDDBWriteCapacityUnits
+      TreatMissingData: notBreaching
+      Dimensions:
+        - Name: TableName
+          Value: !Ref DataTable
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 450
+      AlarmActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+      OKActions:
+        - Fn::ImportValue: !Sub "${SNSStackName}-SNSCritical"
+
+  ParamStoreDB:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: db table name value for use in consuming application code
+      Name: !Sub
+        - '${ParamStorePrefix}/Services.DB.TableName'
+        - ParamStorePrefix: !ImportValue
+            'Fn::Sub': '${VariablesStackName}-ParamStorePrefix'
+      Tags:
+        createdBy: documentdb.template
+      Tier: Standard
+      Type: String
+      Value: !Ref DataTable
+
+Outputs:
+  StackName:
+    Value: !Ref 'AWS::StackName'
+    Description: Stack name for this stack
+  DataTableName:
+    Description: DynamoDB Table - Data
+    Value: !Ref DataTable

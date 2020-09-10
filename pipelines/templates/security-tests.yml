@@ -1,0 +1,72 @@
+# TODO: This script would be a lot more flexible and re-usable (across projects) if it was more parameterised.
+#  it doesn't have to take EVERY variable (as it's fine to mix in some convention); but things like scan path etc
+#
+# parameters:
+#  PROJECT_NAME: ''
+#  THREADFIX_APIKEY: ''
+#  SECURITY_FOLDER: ''
+#  etc
+#
+# but we could rely on converntion for the folder structure containing scripts
+#
+# security/fortify
+# security/dependenchCheck
+#
+
+steps:
+- task: dependency-check.dependencycheck.dependency-check-build-task.dependency-check-build-task@5
+  displayName: 'dependency-check: scan OWASP'
+  inputs:
+    projectName: bnkcskeleton
+    scanPath: '$(Build.SourcesDirectory)'
+    excludePath: '**\demo\**'
+    format: 'HTML,XML'
+    suppressionPath: '$(Build.SourcesDirectory)/pipelines/security/dependency-check/owasp/owasp-suppression.xml'
+    additionalArguments: |
+      --exclude **\*.tests\**\* --exclude **\*.Tests\** --exclude **\*Test*\** --exclude **\tests\**
+      --out $(Common.TestResultsDirectory)/dependency-check/
+
+- task: PowerShell@2
+  displayName: 'dependency-check: upload to ThreadFix'
+  inputs:
+    targetType: filepath
+    filePath: './pipelines/security/thread-fix/Upload-ResultsToThreadFix.ps1'
+    arguments: '-ThreadFixUri $(ThreadFix.Uri) -ApiKey $(ThreadFix.ApiKey) -ApplicationId $(ThreadFix.AppId) -ScanFile $(Common.TestResultsDirectory)/dependency-check/dependency-check-report.xml'
+    pwsh: true
+
+- task: PowerShell@2
+  displayName: 'static-code-analysis: get installer'
+  inputs:
+    targetType: filePath
+    filePath: './pipelines/security/static-code-analysis/fortify/Get-Fortify.ps1'
+  env:
+    FORTIFY_COPY_KEY: $(FortifyCopy.Key)
+    INSTALLER_DIRECTORY: $(Common.TestResultsDirectory)/static-code-analysis
+
+- task: fortifyvsts.hpe-security-fortify-vsts.build-task-fortify-sca-install.InstallFortifySCA@3
+  displayName: 'static-code-analysis: install on agent'
+  inputs:
+    InstallerPath: '$(Common.TestResultsDirectory)/static-code-analysis/Fortify_SCA/18.20/Fortify_SCA_and_Apps_18.20_windows_x64.exe'
+    VS2013: false
+    VS2015: false
+    VS2017: true
+    LicenseFile: '$(Common.TestResultsDirectory)/static-code-analysis/Fortify_SCA/18.20/fortify.license'
+    RunFortifyRulepackUpdate: true
+
+- task: PowerShell@2
+  displayName: 'static-code-analysis: run scan'
+  inputs:
+    targetType: filePath
+    filePath: './pipelines/security/static-code-analysis/fortify/Run-Fortify.ps1'
+    pwsh: true
+  env:
+    IN: '$(Build.SourcesDirectory)/components'
+    OUT: '$(Common.TestResultsDirectory)/static-code-analysis/'
+
+- task: PowerShell@2
+  displayName: 'static-code-analysis: upload to ThreadFix'
+  inputs:
+    targetType: filepath
+    filePath: './pipelines/security/thread-fix/Upload-ResultsToThreadFix.ps1'
+    arguments: '-ThreadFixUri $(ThreadFix.Uri) -ApiKey $(ThreadFix.ApiKey) -ApplicationId $(ThreadFix.AppId) -ScanFile $(Common.TestResultsDirectory)/static-code-analysis/fortify-report.fpr'
+    pwsh: true
