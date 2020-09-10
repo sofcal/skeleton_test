@@ -31,7 +31,7 @@ class Temp extends DynamoLikeBase {
     }
 
     static Create(...args) { return new Temp(...args); }
-    generateKeysSync(item, id) {
+    generateKeysSync(item, id) { // eslint-disable-line class-methods-use-this
         return {
             PrimaryKey: Temp.name,
             Id: id || item.Id // ,
@@ -39,7 +39,7 @@ class Temp extends DynamoLikeBase {
         };
     }
 
-    generateCompositesSync(item) {
+    generateCompositesSync(/* item */) { // eslint-disable-line class-methods-use-this
         return { CompositeKey: 'composite_key' };
     }
 }
@@ -74,7 +74,7 @@ class ApiAuthGetLambda extends LambdaApiBase {
             MapAttribute: { foo: 'bar' },
             NullAttribute: null
         }));
-        const found = await interfaces.temp.findOneById('00000000-0000-0000-0000-000000000000');
+        // const found = await interfaces.temp.findOneById('00000000-0000-0000-0000-000000000000');
         await interfaces.temp.removeOne('00000000-0000-0000-0000-000000000000');
         // const { empty } = event.validated;
 

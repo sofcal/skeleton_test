@@ -1,5 +1,3 @@
-const needle = require('needle');
-
 const providerIdentities = {
     runStep: 'fSGWmP9JgqWzwW0A2B55euqp2LPk35YZ',
     skipStep: 'JvPdek55ZmUFhNaAQrx2KXcjJbqkgyGf'
@@ -18,8 +16,8 @@ cloudIdInfos[providerIdentities.runStep] = {
     }
 };
 
-module.exports = (providerIdentity) => {
-    return async(endpoint, isLocal) => {
+module.exports = (/* providerIdentity */) => {
+    return async(/* endpoint, isLocal */) => {
         const headers = {};
 
         return {
